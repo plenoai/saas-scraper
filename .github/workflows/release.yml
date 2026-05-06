@@ -45,6 +45,11 @@ jobs:
           name: dist
           path: dist/
 
-      - uses: pypa/gh-action-pypi-publish@7f25271a4aa483500f742f9492b2ab5648d61011 # v1.12.4
+      # SHA pinning is unsafe for this action: its container image is
+      # tagged with git tags, not commit SHAs, and a SHA reference yields
+      # `manifest unknown` from ghcr.io. Pin to the version tag instead;
+      # supply chain risk is mitigated by Dependabot keeping the version
+      # current and by trusted publishing's OIDC binding to this repo.
+      - uses: pypa/gh-action-pypi-publish@v1.12.4
         with:
           packages-dir: dist
