@@ -88,10 +88,27 @@ uv run ruff check
 uv run mypy src
 ```
 
+The default `pytest` pass exercises plumbing only (Document protocol,
+registry wiring, CLI helpers). Live browser scrapes against real SaaS
+providers are not part of CI; run them locally with
+`saas-scraper fetch <connector> --headed` so a real Chromium window
+opens for first-time SSO.
+
 ## Release
 
-`vX.Y.Z` tag pushes trigger PyPI trusted publishing via GitHub Actions. No
-manual PyPI token. See `.github/workflows/release.yml`.
+`vX.Y.Z` tag pushes trigger PyPI trusted publishing via GitHub Actions —
+no manual token. The first publish requires a one-time Trusted Publisher
+configuration at <https://pypi.org/manage/account/publishing/>:
+
+| Field | Value |
+| --- | --- |
+| PyPI Project Name | `saas-scraper` |
+| Owner | `plenoai` |
+| Repository name | `saas-scraper` |
+| Workflow name | `release.yml` |
+| Environment name | `pypi` |
+
+After that, every tag matching `v*` will publish automatically.
 
 ## License
 
