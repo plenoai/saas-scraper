@@ -57,7 +57,7 @@ def test_connector_protocol_runtime_checkable() -> None:
         id = "s"
         kind = "stub"
 
-        async def discover(self, filter: SourceFilter):
+        async def discover(self, filter: SourceFilter, cursor: str | None = None):
             if False:
                 yield  # type: ignore[unreachable]
 
@@ -68,6 +68,11 @@ def test_connector_protocol_runtime_checkable() -> None:
         async def discover_and_fetch(self, filter: SourceFilter | None = None):
             if False:
                 yield  # type: ignore[unreachable]
+
+        def capabilities(self):
+            from saas_retriever import Capabilities
+
+            return Capabilities()
 
         async def close(self) -> None:
             return None

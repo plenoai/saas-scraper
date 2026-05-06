@@ -1,7 +1,7 @@
 [project]
 name = "saas-retriever"
-version = "0.1.0"
-description = "API-first SaaS content retriever — uniform Document stream from GitHub (issues + PRs + code, org-wide). No scraping, no Playwright."
+version = "1.0.0"
+description = "API-first SaaS content retriever — uniform Document stream from GitHub, GitLab, Bitbucket, Notion, Confluence, Jira, and Slack via official REST APIs. No scraping, no Playwright."
 readme = "README.md"
 license = "AGPL-3.0-or-later"
 requires-python = ">=3.12"

@@ -48,9 +48,7 @@ class _Registry:
             factory = self._factories[name]
         except KeyError:
             available = ", ".join(self.names()) or "(none)"
-            raise KeyError(
-                f"Unknown connector: {name!r}. Available: {available}"
-            ) from None
+            raise KeyError(f"Unknown connector: {name!r}. Available: {available}") from None
         result: Connector = factory(**kwargs)
         return result
 

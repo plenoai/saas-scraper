@@ -77,9 +77,7 @@ def cmd_fetch(
         "--resource",
         help="Resource types to fetch (repeatable). GitHub: code|issues|prs.",
     ),
-    since: str | None = typer.Option(
-        None, "--since", help="Filter to docs newer than this (e.g. 7d, 24h, ISO8601)."
-    ),
+    since: str | None = typer.Option(None, "--since", help="Filter to docs newer than this (e.g. 7d, 24h, ISO8601)."),
     include: list[str] = typer.Option([], "--include", help="Glob include filter (repeatable)."),
     exclude: list[str] = typer.Option([], "--exclude", help="Glob exclude filter (repeatable)."),
     include_archived: bool = typer.Option(
@@ -190,9 +188,7 @@ def _encode_document(doc: Document) -> str:
     payload: dict[str, Any] = {
         "ref": _to_jsonable(doc.ref),
         "text": doc.text,
-        "binary_b64": (
-            base64.b64encode(doc.binary).decode("ascii") if doc.binary else None
-        ),
+        "binary_b64": (base64.b64encode(doc.binary).decode("ascii") if doc.binary else None),
         "fetched_at": doc.fetched_at.isoformat() if doc.fetched_at else None,
         "content_hash": doc.content_hash,
         "created_by": _to_jsonable(doc.created_by) if doc.created_by else None,
