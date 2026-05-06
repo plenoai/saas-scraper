@@ -54,15 +54,15 @@ asyncio.run(main())
 
 ## Connectors
 
-| Connector | Status |
-|---|---|
-| github | scaffolded |
-| gitlab | scaffolded |
-| slack | scaffolded |
-| jira | scaffolded |
-| confluence | scaffolded |
-| notion | scaffolded |
-| bitbucket | scaffolded |
+| Connector | Status | Notes |
+|---|---|---|
+| slack | implemented (v0.2) | channel sidebar walk, message pane scrape; no scroll-walking yet |
+| github | scaffolded | |
+| gitlab | scaffolded | |
+| jira | scaffolded | |
+| confluence | scaffolded | |
+| notion | scaffolded | |
+| bitbucket | scaffolded | |
 
 The v0.1.0 release ships the `Document` protocol, the Chrome session manager,
 and a working scaffold per connector. Additional providers and per-connector

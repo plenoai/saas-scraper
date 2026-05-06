@@ -7,10 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Planned
 
-- Real Slack message scrape (channel walk + virtualised list extraction).
+- Slack scroll-walking for virtualised channel and message lists.
 - Notion page-tree walk and block-level content capture.
 - GitHub repo / issue / PR / wiki / gist scrape with SSO inheritance.
 - Integration test harness (Playwright + recorded HAR fixtures).
+
+## [0.2.0] - 2026-05-06
+
+### Added
+
+- **Slack connector**: real implementation that opens
+  ``https://<workspace>.slack.com/`` via the persistent BrowserSession,
+  detects the not-logged-in state vs. mounted client by racing the
+  sidebar selector against the login form, and returns visible channels
+  from ``discover()`` and visible message-pane text from ``fetch()``.
+- ``NotLoggedInError`` exception with an actionable "run once with
+  ``--headed``" message.
+- ``filter.include`` / ``filter.exclude`` glob support during discovery.
+- Test suite for the connector via a fake Page that records ``goto`` /
+  ``wait_for_selector`` and dispatches ``evaluate`` results — no real
+  Chromium required for unit tests.
+
+### Known limits
+
+- Sidebar and message pane reads are virtualised: only currently-visible
+  channels / messages are captured. Scroll-walking lands in v0.3.0.
+- No threaded-reply or attachment handling yet.
 
 ## [0.1.3] - 2026-05-06
 
@@ -66,7 +88,8 @@ Initial scaffold.
 - Tag-pushed PyPI trusted publishing via `pypa/gh-action-pypi-publish`.
 - Dependabot for `github-actions` and `pip`.
 
-[Unreleased]: https://github.com/plenoai/saas-scraper/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/plenoai/saas-scraper/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/plenoai/saas-scraper/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/plenoai/saas-scraper/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/plenoai/saas-scraper/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/plenoai/saas-scraper/compare/v0.1.0...v0.1.1
