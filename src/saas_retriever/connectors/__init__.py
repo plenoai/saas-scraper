@@ -9,6 +9,7 @@ from saas_retriever.connectors import bitbucket as _bitbucket  # noqa: F401
 from saas_retriever.connectors import confluence as _confluence  # noqa: F401
 from saas_retriever.connectors import github as _github  # noqa: F401
 from saas_retriever.connectors import gitlab as _gitlab  # noqa: F401
+from saas_retriever.connectors import jira as _jira  # noqa: F401
 from saas_retriever.connectors import notion as _notion  # noqa: F401
 
 __all__: list[str] = []
