@@ -12,6 +12,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - GitHub repo / issue / PR / wiki / gist scrape with SSO inheritance.
 - Integration test harness (Playwright + recorded HAR fixtures).
 
+## [0.1.2] - 2026-05-06
+
+### Changed
+
+- Re-tag of 0.1.1 after PyPI Pending Publisher was registered. Functional
+  scope identical to 0.1.1; this is the first release that actually
+  reaches PyPI.
+
 ## [0.1.1] - 2026-05-06
 
 ### Fixed
@@ -45,6 +53,7 @@ Initial scaffold.
 - Tag-pushed PyPI trusted publishing via `pypa/gh-action-pypi-publish`.
 - Dependabot for `github-actions` and `pip`.
 
-[Unreleased]: https://github.com/plenoai/saas-scraper/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/plenoai/saas-scraper/compare/v0.1.2...HEAD
+[0.1.2]: https://github.com/plenoai/saas-scraper/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/plenoai/saas-scraper/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/plenoai/saas-scraper/releases/tag/v0.1.0
