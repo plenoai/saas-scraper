@@ -54,7 +54,13 @@ from typing import Any
 
 import httpx
 
-from saas_retriever.core import Document, DocumentRef, Principal, SourceFilter
+from saas_retriever.core import (
+    Capabilities,
+    Document,
+    DocumentRef,
+    Principal,
+    SourceFilter,
+)
 from saas_retriever.registry import registry
 
 DEFAULT_RESOURCES: frozenset[str] = frozenset({"code", "issues", "prs"})
@@ -96,10 +102,7 @@ class GitHubConnector:
         chosen = frozenset(resources) if resources is not None else DEFAULT_RESOURCES
         unknown = chosen - SUPPORTED_RESOURCES
         if unknown:
-            raise ValueError(
-                f"unknown resources {sorted(unknown)}; "
-                f"supported: {sorted(SUPPORTED_RESOURCES)}"
-            )
+            raise ValueError(f"unknown resources {sorted(unknown)}; supported: {sorted(SUPPORTED_RESOURCES)}")
         self.resources: frozenset[str] = chosen
         self.base_url = base_url.rstrip("/")
         self.include_archived = include_archived
@@ -116,7 +119,11 @@ class GitHubConnector:
 
     # --- public protocol --------------------------------------------------
 
-    async def discover(self, filter: SourceFilter) -> AsyncIterator[DocumentRef]:
+    async def discover(
+        self,
+        filter: SourceFilter,
+        cursor: str | None = None,
+    ) -> AsyncIterator[DocumentRef]:
         repos = await self._list_repos()
         for repo_info in repos:
             owner = repo_info["owner"]["login"]
@@ -146,13 +153,20 @@ class GitHubConnector:
         else:
             raise ValueError(f"unknown resource_type {rt!r}; expected code|issue|pr")
 
-    async def discover_and_fetch(
-        self, filter: SourceFilter | None = None
-    ) -> AsyncIterator[Document]:
+    async def discover_and_fetch(self, filter: SourceFilter | None = None) -> AsyncIterator[Document]:
         flt = filter or SourceFilter()
-        async for ref in self.discover(flt):
+        async for ref in self.discover(flt, None):
             async for doc in self.fetch(ref):
                 yield doc
+
+    def capabilities(self) -> Capabilities:
+        return Capabilities(
+            incremental=False,
+            binary=True,
+            content_hash_delta=False,
+            max_concurrent_fetches=4,
+            streaming=False,
+        )
 
     async def close(self) -> None:
         await self._client.aclose()
@@ -170,9 +184,7 @@ class GitHubConnector:
         out: list[Mapping[str, Any]] = []
         for url_path in (f"/orgs/{self.owner}/repos", f"/users/{self.owner}/repos"):
             try:
-                async for batch in self._paginate(
-                    url_path, params={"type": "all", "per_page": 100}
-                ):
+                async for batch in self._paginate(url_path, params={"type": "all", "per_page": 100}):
                     for repo in batch:
                         if not self.include_archived and repo.get("archived"):
                             continue
@@ -270,9 +282,7 @@ class GitHubConnector:
         if filter.since is not None:
             params["since"] = filter.since.isoformat()
         emitted = 0
-        async for batch in self._paginate(
-            f"/repos/{owner}/{name}/issues", params=params
-        ):
+        async for batch in self._paginate(f"/repos/{owner}/{name}/issues", params=params):
             for issue in batch:
                 # /issues mixes PRs in by default. Skip — PRs come from
                 # /pulls so we don't double-emit them.
@@ -327,9 +337,7 @@ class GitHubConnector:
     ) -> AsyncIterator[DocumentRef]:
         params: dict[str, Any] = {"state": "all", "per_page": 100}
         emitted = 0
-        async for batch in self._paginate(
-            f"/repos/{owner}/{name}/pulls", params=params
-        ):
+        async for batch in self._paginate(f"/repos/{owner}/{name}/pulls", params=params):
             for pr in batch:
                 if filter.since is not None:
                     updated = _parse_ts(pr.get("updated_at"))
