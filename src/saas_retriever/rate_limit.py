@@ -25,7 +25,7 @@ from time import monotonic
 _MIN_RATE = 0.5  # tokens/sec
 
 
-class RateLimited(Exception):
+class RateLimited(Exception):  # noqa: N818 — public API; mirrors pleno-anonymize's name
     """Raised when the caller asked for tokens it cannot get within timeout.
 
     Connectors that catch this should yield control back to the caller
