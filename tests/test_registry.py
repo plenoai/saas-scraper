@@ -4,7 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-# Importing the connectors package triggers all built-in registrations.
+# `import saas_scraper` alone must populate the registry — verified in
+# test_top_level_import_populates_registry. Importing the subpackage here
+# is belt-and-braces in case someone refactors the top-level __init__.
 import saas_scraper.connectors  # noqa: F401
 from saas_scraper.registry import registry
 

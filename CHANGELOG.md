@@ -12,6 +12,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - GitHub repo / issue / PR / wiki / gist scrape with SSO inheritance.
 - Integration test harness (Playwright + recorded HAR fixtures).
 
+## [0.1.3] - 2026-05-06
+
+### Fixed
+
+- `import saas_scraper` no longer leaves `registry.names()` empty.
+  Connector self-registration is triggered from the package
+  `__init__.py` so callers don't need a second import to populate the
+  registry.
+
+### Added
+
+- Test guarding the import-side-effect contract above.
+
 ## [0.1.2] - 2026-05-06
 
 ### Changed
@@ -53,7 +66,8 @@ Initial scaffold.
 - Tag-pushed PyPI trusted publishing via `pypa/gh-action-pypi-publish`.
 - Dependabot for `github-actions` and `pip`.
 
-[Unreleased]: https://github.com/plenoai/saas-scraper/compare/v0.1.2...HEAD
+[Unreleased]: https://github.com/plenoai/saas-scraper/compare/v0.1.3...HEAD
+[0.1.3]: https://github.com/plenoai/saas-scraper/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/plenoai/saas-scraper/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/plenoai/saas-scraper/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/plenoai/saas-scraper/releases/tag/v0.1.0

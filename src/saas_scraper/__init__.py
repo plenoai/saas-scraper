@@ -14,6 +14,12 @@ Versioning: SemVer on the public API surface above. Connector internals
 between minor versions as upstream UIs evolve.
 """
 
+# Importing the connectors package triggers each connector's module-level
+# `registry.register` call. Doing it here means `import saas_scraper` is
+# enough — programmatic users don't have to remember a second import to
+# populate the registry. Selective opt-in is still possible by importing
+# individual connector modules instead of the top-level package.
+from saas_scraper import connectors as _connectors  # noqa: F401
 from saas_scraper.browser import BrowserSession
 from saas_scraper.core import (
     Connector,
@@ -34,4 +40,4 @@ __all__ = [
     "registry",
 ]
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
