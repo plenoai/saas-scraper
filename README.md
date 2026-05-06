@@ -1,17 +1,10 @@
 # saas-retriever
 
 API-first SaaS content retriever. Yields a uniform `Document` stream
-from SaaS providers via their official APIs — **no scraping, no
-Playwright, no Chrome**. Downstream pipelines
-([pleno-anonymize](https://github.com/plenoai/pleno-anonymize),
-[pleno-secret-scanner](https://github.com/plenoai/pleno-secret-scanner))
-consume the same `Document` shape they always have.
-
-> **Heads up:** `saas-retriever` is the API-only successor of
-> `saas-scraper` (PyPI 0.1–0.5, deprecated). The browser-driven
-> connectors are gone; everything in this package goes through
-> documented APIs. Pin `saas-scraper<=0.5` if you specifically need the
-> old behaviour.
+from seven SaaS providers via their official REST APIs. Downstream
+pipelines ([pleno-anonymize](https://github.com/plenoai/pleno-anonymize),
+[pleno-dlp](https://github.com/plenoai/pleno-dlp)) consume the same
+`Document` shape regardless of which provider produced it.
 
 ## Install
 
@@ -20,6 +13,18 @@ uv add saas-retriever
 # or, as a CLI:
 pipx install saas-retriever
 ```
+
+## Connectors
+
+| kind | targets | resources |
+|---|---|---|
+| **github** | org or single repo | code, issues, pull requests (title + body + comments + diff) |
+| **gitlab** | group (recursive) or single project | code, issues, merge requests (with per-file diff) |
+| **bitbucket** | Cloud workspace or Server project, optionally pinned to a repo | code, pull requests, issues (Cloud only) |
+| **notion** | search / explicit pages / database query (combinable) | page tree + database row properties → Markdown |
+| **confluence** | Cloud or Data Center; spaces enumerated then pages | page body (storage XHTML → text) + comments + attachment refs |
+| **jira** | Cloud (`/rest/api/3` + ADF) or Data Center (`/rest/api/2` + storage XHTML) | issues + comments + attachment URLs |
+| **slack** | xoxb (bot) or xoxp (user) tokens | channels → history → threads → optional file refs |
 
 ## Usage
 
@@ -63,37 +68,50 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+Every connector exposes the same `Connector` protocol — swap `"github"`
+for `"gitlab"`, `"slack"`, etc. and the loop above keeps working.
+
 ## Auth
 
-Token resolution order:
+Each connector accepts either a typed `Credential` or the discrete
+constructor kwargs (`token=`, `username=`, `email=`, `api_token=`, …).
+Credential payload keys are auto-redacted in `repr`/`str`.
 
-1. `token=` constructor argument (`--token` on the CLI)
-2. `GITHUB_TOKEN` environment variable
-3. `gh auth token` if the GitHub CLI is on PATH
+| connector | accepted credential shapes |
+|---|---|
+| github | `token=` (PAT). CLI also resolves `GITHUB_TOKEN` env var or `gh auth token`. |
+| gitlab | `token=` + `auth=` ∈ {`pat`, `project`, `oauth`}. Bearer for OAuth, `PRIVATE-TOKEN` otherwise. |
+| bitbucket | Cloud: `token=` (Bearer) or `username=`/`app_password=` (Basic). Server: `token=` or `username=`/`password=`. |
+| notion | `token=` (Bearer integration token). |
+| confluence | Cloud: `token=` (Bearer) or `email=`/`api_token=` (Basic). DC: `token=` (Bearer PAT) or `username=`/`password=`. |
+| jira | `access_token=` (Bearer); Cloud: `email=`/`api_token=`; DC: `username=`/`password=`. |
+| slack | `token=` (xoxb-… or xoxp-…). |
 
-Anonymous (token-less) requests work for public content but are
-rate-limited to 60/h — fine for a smoke test, not enough for an
-org-wide scan. Use a fine-grained PAT with `metadata:read` +
-`contents:read` + `issues:read` + `pull_requests:read` for the minimum
-viable scope.
+## Cursors and incremental scans
 
-## Connectors
+Connectors that advertise `Capabilities.incremental` round-trip an
+opaque resume token through `discover(filter, cursor=...)`:
 
-| Connector | Status | What it covers |
-|---|---|---|
-| **github** | implemented (v0.1) | Org-wide repo enumeration + per-repo code (recursive tree), issues (title + body + comments), pull requests (title + body + comments + review comments + diff). Default: all three resources. |
+* **gitlab / github** — server-side filters where available.
+* **confluence / jira** — JSON cursor anchored on `version.when` /
+  `updated`. Stale or malformed cursors fall back to a full re-walk.
+* **slack** — JSON `{channel_id: latest_ts}` per channel, fed back into
+  Slack's `oldest=` parameter.
+* **notion** — search cursor round-tripped on every emitted ref via
+  `metadata["_cursor"]`.
 
-Slack, Jira, Confluence, Notion, GitLab, Bitbucket land in subsequent
-releases as standalone API-based connectors. The `Document` /
-`DocumentRef` / `Connector` protocol is stable and downstream consumers
-won't need to change.
+Persist `cursor_after_run()` (when the connector exposes it) and pass
+the same string back on the next scan to resume.
 
-## Rate-limit handling
+## Rate limiting
 
-The connector reads `X-RateLimit-Remaining` / `X-RateLimit-Reset` and
-sleeps until the bucket resets on `403` secondary rate-limit
-responses. Hard `429`s honour `Retry-After`. 5xx errors retry with
-exponential backoff (3 attempts).
+`saas_retriever.AdaptiveTokenBucket` + `GlobalRateLimiter` provide an
+AIMD bucket per `BucketKey(connector_kind, tenant_id)`. Connectors
+raise `RateLimited` on persistent throttle (429 on most providers,
+plus 503 on Atlassian Data Center where their reverse proxy emits
+overload signals over 429 by policy). Callers can shrink the
+effective rate via `on_throttle_signal(factor=0.5)` and grow it back
+with `on_success(recovery=...)`.
 
 ## Development
 
@@ -105,8 +123,7 @@ uv run pytest
 ```
 
 The default `pytest` pass uses `httpx.MockTransport` for every HTTP
-call — no live API access in CI. A live smoke test against a real
-public org runs as a manual step before release.
+call — no live API access in CI.
 
 ## Release
 

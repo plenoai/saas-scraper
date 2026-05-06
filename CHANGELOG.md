@@ -7,114 +7,90 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ## [1.0.0] - 2026-05-07
 
-Six new API-only connectors join GitHub. The public protocol surface
-is now stable: ``Connector`` / ``Capabilities`` / ``Cursor`` /
+The public protocol surface is now SemVer-stable: ``Connector`` /
+``IncrementalConnector`` / ``Capabilities`` / ``Cursor`` /
 ``DocumentChunk`` / ``Subsource`` / ``Credential`` / ``RateLimited``.
+Per-connector configuration knobs (rate-limit budgets, retry counts,
+page sizes) are not part of the SemVer surface and may be tuned
+between minors.
 
-### Added
+### Added — connectors
 
+- ``GitHubConnector`` — owner-wide or single-repo. Resources:
+  ``code`` (recursive Git Tree API + raw blob fetch), ``issues``
+  (title + body + comments), ``prs`` (title + body + conversation
+  comments + review comments + unified diff).
 - ``BitbucketConnector`` — Cloud (REST 2.0) + Server (REST 1.0)
-  flavors. Resources: ``code`` (depth-first ``/src`` walk on Cloud,
-  flat ``/files`` on Server), ``prs`` (both flavors), ``issues``
-  (Cloud only).
+  flavors selected at construction. Resources: ``code`` (depth-first
+  ``/src`` walk on Cloud, flat ``/files`` walk on Server), ``prs``
+  (both flavors), ``issues`` (Cloud only — Server has no native
+  issue tracker; downgraded silently).
 - ``GitLabConnector`` — SaaS gitlab.com + self-managed CE/EE.
-  Resources: ``code`` (recursive Tree API), ``issues``, ``mrs`` (with
-  per-file diff). Three auth modes: PAT, project access token, OAuth2.
+  Targets: ``project="ns/path"`` or ``group="ns"`` (recursive
+  subgroup walk). Resources: ``code`` (recursive Tree API + raw file
+  fetch), ``issues`` (description + non-system notes), ``mrs``
+  (description + notes + per-file diff). Three auth modes: PAT,
+  project access token, OAuth2.
 - ``NotionConnector`` — pinned ``Notion-Version: 2022-06-28``. Three
-  discovery modes (search / explicit pages / database query). Block
-  tree + database properties materialised into Markdown via the
-  vendored ``notion_markdown`` converter.
-- ``ConfluenceConnector`` — Cloud + Data Center, single kind. Storage
-  format XHTML → text via vendored ``confluence_storage``. Cursor on
-  ``version.when``; 429-Cloud + 503-DC backoff.
-- ``JiraConnector`` — Cloud (``/rest/api/3`` + ADF) + Data Center
-  (``/rest/api/2`` + storage XHTML). JQL ``updated >=`` for
-  incremental scan; comments + attachment URLs.
-- ``SlackConnector`` — REST-only (no ``slack_sdk`` dependency).
-  Supports ``xoxb-`` and ``xoxp-`` tokens; ``conversations.list``
-  → ``conversations.history`` → ``conversations.replies`` for threaded
-  messages. Cursor is per-channel ``latest_ts``.
+  discovery modes (search / explicit page list / database query) that
+  may be combined. Block tree + database row properties materialised
+  into Markdown via the vendored ``notion_markdown`` converter.
+- ``ConfluenceConnector`` — Cloud + Data Center, single kind. Pipeline
+  enumerates spaces → pages → comments + attachment refs; storage
+  format XHTML → text via the vendored ``confluence_storage``
+  converter. Cursor anchored on ``version.when``; honours
+  429 (Cloud) and 503 (DC reverse-proxy) throttle signals.
+- ``JiraConnector`` — Cloud (``/rest/api/3`` + ADF body) and Data
+  Center (``/rest/api/2`` + storage XHTML body). Pipeline enumerates
+  projects → JQL ``updated >= cursor`` per project → comments per
+  issue. Attachment URLs surfaced; bodies never downloaded.
+  Three auth modes: ``access_token`` (Bearer), Cloud
+  ``email`` + ``api_token`` (Basic), DC ``username`` + ``password``
+  (Basic).
+- ``SlackConnector`` — REST-only, no third-party SDK. Supports
+  ``xoxb-`` (bot) and ``xoxp-`` (user) tokens. Pipeline:
+  ``conversations.list`` → ``conversations.history`` per channel
+  (server-side ``oldest=`` for incremental) → ``conversations.replies``
+  for threaded messages. ``users.info`` resolves a ``Principal``
+  on demand (with cache).
 
-### Changed
+### Added — protocol
 
-- Core protocol extended for v1.0: ``Capabilities`` (incremental,
-  binary, content_hash_delta, max_concurrent_fetches, streaming),
-  ``DocumentChunk`` (streamed slice), ``Subsource`` +
-  ``SUBSOURCE_METADATA_KEY`` (sub-unit fingerprinting),
-  ``IncrementalConnector`` (optional Protocol).
-- ``Connector.discover()`` now takes ``cursor: Cursor | None``;
-  connectors round-trip the cursor on every ref via ``metadata["_cursor"]``.
+- ``Capabilities`` — connector self-description: ``incremental``,
+  ``binary``, ``content_hash_delta``, ``max_concurrent_fetches``,
+  ``streaming``.
+- ``Cursor`` — opaque per-connector resume token (str). Persisted
+  verbatim by callers and round-tripped through
+  ``discover(filter, cursor=...)``.
+- ``DocumentChunk`` — streamed slice of a document payload, with
+  ``byte_range`` and ``is_final``. Yielded in order by ``fetch()``
+  for documents that exceed the in-memory size budget.
+- ``Subsource`` + ``SUBSOURCE_METADATA_KEY`` (``"_subsource_id"``) —
+  sub-unit fingerprinting for hierarchical sources (org → repos,
+  workspace → channels, …).
+- ``IncrementalConnector`` (``runtime_checkable`` Protocol) — optional
+  extension that exposes ``list_subsources()`` and
+  ``set_subsource_skip(frozenset[str])``.
 
-### Added (rate limit + credentials)
+### Added — rate limit + credentials
 
-- ``AdaptiveTokenBucket`` + ``GlobalRateLimiter`` — AIMD bucket per
-  ``BucketKey(connector_kind, tenant_id)``. Connectors raise
-  ``RateLimited`` on persistent throttle so the bucket can shrink.
-- ``Credential`` dataclass with auto-redacting ``__repr__``;
-  ``CredentialError`` + ``CredentialNotFoundError`` +
-  ``CredentialMisconfiguredError``.
+- ``AdaptiveTokenBucket`` + ``GlobalRateLimiter`` — AIMD bucket
+  keyed on ``BucketKey(connector_kind, tenant_id)``. Connectors raise
+  ``RateLimited`` on persistent throttle so the bucket can shrink
+  the effective rate.
+- ``Credential`` dataclass with auto-redacting ``__repr__`` /
+  ``__str__`` for any payload key matching token / secret / password /
+  private / session / pem.
+- ``CredentialError``, ``CredentialNotFoundError``,
+  ``CredentialMisconfiguredError`` — typed errors raised at
+  construction so misconfigured profiles fail loudly instead of
+  silently 401-ing every request.
 
 ### Tested
 
-- 205 hermetic tests passing (``httpx.MockTransport`` on every
-  connector). ``ruff`` clean, ``mypy --strict`` clean.
-
-## [0.1.0] - 2026-05-06
-
-Initial API-first release. Hard reboot of the package: the previous
-``saas-scraper`` codebase shipped browser-driven scrapers (Playwright +
-Chrome) for seven providers. That entire approach is gone — this
-package goes through documented APIs only.
-
-If you specifically need the old browser-based behaviour, pin
-``saas-scraper<=0.5``. Future releases of ``saas-retriever`` will not
-ship Playwright.
-
-### Added
-
-- ``GitHubConnector`` — REST-API driven, replaces every former
-  scraping path:
-  - **Org-wide enumeration** is the default. Construct with
-    ``owner=plenoai`` (no ``repo``) to walk every repository under that
-    org via ``/orgs/{owner}/repos`` (falling back to
-    ``/users/{owner}/repos`` for personal accounts). Archived repos are
-    skipped unless ``include_archived=True``.
-  - **Per-repo resources**: ``{"code", "issues", "prs"}``, all enabled
-    by default. Refs carry ``metadata["resource_type"]`` so downstream
-    pipelines can dispatch.
-  - **Code**: recursive Git Tree API. ``fetch`` returns raw blob bytes
-    via ``/git/blobs/{sha}`` with ``Accept: application/vnd.github.raw``;
-    UTF-8 decoded when valid, binary fallback otherwise.
-  - **Issues**: title + body + every issue comment, joined into one
-    ``Document.text``. PRs surfaced through ``/issues`` are filtered
-    out so they aren't double-emitted.
-  - **Pull requests**: title + body + conversation comments + review
-    comments + the unified diff via ``Accept: application/vnd.github.diff``.
-- Auth: ``token=`` arg → ``GITHUB_TOKEN`` env → ``gh auth token``.
-  Anonymous works for public content (60/h cap).
-- Pagination via ``Link`` header. Rate-limit handling reads
-  ``X-RateLimit-Reset`` / ``Retry-After`` and sleeps; 5xx retries with
-  exponential backoff (3 attempts).
-- Test suite (37 tests) drives every code path through
+- 205 hermetic tests, every HTTP call routed through
   ``httpx.MockTransport`` — no live API access in CI.
-- Live smoke test against ``plenoai`` org on real api.github.com:
-  org-wide enumeration, code blob fetch, issue body retrieval, PR
-  diff retrieval, all confirmed end-to-end.
-
-### Removed
-
-- ``saas_scraper`` package, ``BrowserSession``, every Playwright
-  selector, ``_fake_page.py`` test harness, scroll-walking helper, the
-  six remaining browser connectors (slack / gitlab / bitbucket / jira /
-  confluence / notion). Each will return as an API-based connector.
-
-### Renamed
-
-- PyPI project: ``saas-scraper`` → ``saas-retriever``.
-- Repository: ``plenoai/saas-scraper`` → ``plenoai/saas-retriever``.
-- Python module: ``saas_scraper`` → ``saas_retriever``.
-- CLI: ``saas-scraper`` → ``saas-retriever``.
+- ``ruff`` clean, ``mypy --strict`` clean.
 
 [Unreleased]: https://github.com/plenoai/saas-retriever/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/plenoai/saas-retriever/releases/tag/v1.0.0
-[0.1.0]: https://github.com/plenoai/saas-retriever/releases/tag/v0.1.0
