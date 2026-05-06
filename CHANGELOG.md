@@ -7,10 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Planned
 
-- Slack scroll-walking for virtualised channel and message lists.
-- Notion page-tree walk and block-level content capture.
-- GitHub repo / issue / PR / wiki / gist scrape with SSO inheritance.
+- Scroll-walking for virtualised lists (Slack sidebar, message panes,
+  Notion sidebar). Land in v0.4.0.
+- GitHub issue / PR / wiki / gist scrape under the same connector.
 - Integration test harness (Playwright + recorded HAR fixtures).
+
+## [0.3.0] - 2026-05-06
+
+### Added
+
+- **GitHub connector** real implementation: file-tree walk via the web
+  UI with depth bound, raw-blob fetch, ``NotLoggedInError`` race for
+  private/SAML repos, text/binary auto-detection.
+- **GitLab connector** real implementation: same shape as GitHub, works
+  against gitlab.com or self-hosted via ``base_url``.
+- **Bitbucket** real implementation: ``src/`` walk with ``raw/`` fetch.
+- **Jira** real implementation: issue-list walk, full issue page text.
+- **Confluence** real implementation: space page-tree walk, page body.
+- **Notion** real implementation: sidebar page enumeration, page body.
+- ``saas_scraper.connectors._base`` now exposes shared
+  ``NotLoggedInError``, ``wait_for_signed_in_or_raise``, ``glob_match``,
+  and ``apply_name_filter`` helpers so each connector is just selectors
+  + URLs without re-implementing the SSO race.
+- Unit tests for every connector via ``tests/_fake_page.py`` — no real
+  Chromium needed for CI.
+
+### Changed
+
+- Slack connector consolidated onto the shared ``_base.py`` helpers;
+  ``NotLoggedInError`` re-exported from ``slack`` for backwards compat.
+
+### Known limits
+
+- Virtual-list scrolling is still pending. Workspaces with many sidebar
+  channels, long message histories, or large Notion sidebars only see
+  the currently-visible portion. v0.4.0 adds scroll-walking.
+- Selectors target each provider's current web UI. A UI shift requires
+  bumping the constants at the top of the connector module.
 
 ## [0.2.0] - 2026-05-06
 
@@ -88,7 +121,8 @@ Initial scaffold.
 - Tag-pushed PyPI trusted publishing via `pypa/gh-action-pypi-publish`.
 - Dependabot for `github-actions` and `pip`.
 
-[Unreleased]: https://github.com/plenoai/saas-scraper/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/plenoai/saas-scraper/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/plenoai/saas-scraper/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/plenoai/saas-scraper/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/plenoai/saas-scraper/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/plenoai/saas-scraper/compare/v0.1.1...v0.1.2

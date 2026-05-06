@@ -56,13 +56,18 @@ asyncio.run(main())
 
 | Connector | Status | Notes |
 |---|---|---|
-| slack | implemented (v0.2) | channel sidebar walk, message pane scrape; no scroll-walking yet |
-| github | scaffolded | |
-| gitlab | scaffolded | |
-| jira | scaffolded | |
-| confluence | scaffolded | |
-| notion | scaffolded | |
-| bitbucket | scaffolded | |
+| slack | implemented (v0.2) | channel sidebar walk, message pane scrape |
+| github | implemented (v0.3) | file-tree walk + raw fetch, public + SSO repos |
+| gitlab | implemented (v0.3) | gitlab.com or self-hosted via `base_url` |
+| bitbucket | implemented (v0.3) | bitbucket.org file walk |
+| jira | implemented (v0.3) | Atlassian Cloud issue list + body |
+| confluence | implemented (v0.3) | Atlassian Cloud space page-tree |
+| notion | implemented (v0.3) | sidebar page enumeration + body |
+
+All connectors share a single `BrowserSession` so cookies and SSO state
+inherit across providers. Virtualised lists (Slack sidebar, Notion
+sidebar) only see the currently-visible portion in v0.3 — scroll-walking
+lands in v0.4.
 
 The v0.1.0 release ships the `Document` protocol, the Chrome session manager,
 and a working scaffold per connector. Additional providers and per-connector

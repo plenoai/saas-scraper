@@ -1,87 +1,15 @@
-"""Slack connector tests against a fake Page.
-
-We can't drive a real Slack workspace from CI, and Playwright + Chromium
-in CI is heavy. Instead we mock ``BrowserSession.new_page`` to return a
-hand-rolled fake Page that satisfies just enough of the Playwright
-contract to exercise ``SlackConnector.discover`` and ``SlackConnector.fetch``.
-
-The fake captures the calls the connector makes (``goto``, ``evaluate``)
-and verifies the connector's structural behaviour: which URLs it visits,
-which selectors it queries, and how it shapes ``DocumentRef`` /
-``Document`` from the JS results.
-
-A real-browser smoke pass against ``app.slack.com`` is the user's job
-(``saas-scraper fetch slack --workspace <slug> --headed``); the package
-README documents the workflow.
-"""
+"""Slack connector tests against a fake Page (see tests/_fake_page.py)."""
 
 from __future__ import annotations
 
-from collections.abc import AsyncIterator, Awaitable, Callable
-from typing import Any
-from unittest.mock import AsyncMock
+from collections.abc import AsyncIterator
 
 import pytest
 
 from saas_scraper.connectors.slack import NotLoggedInError, SlackConnector
 from saas_scraper.core import Document, DocumentRef, SourceFilter
-
-
-class _FakePage:
-    """Minimal stand-in for playwright.async_api.Page.
-
-    Records ``goto`` and ``wait_for_selector`` calls so tests can assert
-    on which selectors the connector polled. ``evaluate`` is dispatched
-    against ``js_results`` keyed by the first 64 characters of the JS
-    body — the connector's ``evaluate`` calls are a closed set, so this
-    keeps the fake tiny without re-implementing a JS engine.
-    """
-
-    def __init__(
-        self,
-        *,
-        js_results: dict[str, Any],
-        wait_for_selector_handler: Callable[[str], Awaitable[Any]] | None = None,
-    ) -> None:
-        self.gotos: list[str] = []
-        self.waited_for: list[str] = []
-        self._js_results = js_results
-        self._wait_handler = wait_for_selector_handler
-        self.closed = False
-
-    async def goto(self, url: str, **_: Any) -> None:
-        self.gotos.append(url)
-
-    async def wait_for_selector(self, selector: str, **_: Any) -> object:
-        self.waited_for.append(selector)
-        if self._wait_handler is not None:
-            return await self._wait_handler(selector)
-        # Default: sidebar resolves immediately; login pends so the
-        # asyncio.wait race in _goto_workspace picks the sidebar.
-        if "signin" in selector:
-            import asyncio as _asyncio
-
-            await _asyncio.sleep(60)
-            return None
-        return object()
-
-    async def evaluate(self, js: str) -> Any:
-        # Match by selector substring so tests stay readable when the
-        # connector evolves its JS bodies.
-        for key, value in self._js_results.items():
-            if key in js:
-                return value
-        raise AssertionError(f"unexpected js evaluate: {js!r}")
-
-    async def close(self) -> None:
-        self.closed = True
-
-
-def _session_with_page(page: _FakePage) -> Any:
-    """Build a fake BrowserSession whose new_page() returns ``page``."""
-    session = AsyncMock()
-    session.new_page = AsyncMock(return_value=page)
-    return session
+from tests._fake_page import FakePage as _FakePage
+from tests._fake_page import session_with_page as _session_with_page
 
 
 @pytest.mark.asyncio
