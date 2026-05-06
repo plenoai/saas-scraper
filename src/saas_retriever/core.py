@@ -3,15 +3,11 @@
 Aligned with pleno-anonymize's `pleno_pii_scanner.sources.base` so a single
 Document type can flow into either pipeline without translation.
 
-Differences from the upstream protocol:
-
-- We collapse `discover()` + `fetch()` into a single `discover_and_fetch()`
-  default flow, because Chrome-driven scraping rarely benefits from the
-  metadata-then-payload split the API-based connectors use. Subclasses are
-  free to override and provide them separately.
-- We drop `IncrementalSourceConnector` (subsource fingerprinting) for the
-  v0.1.0 surface. Browser-driven connectors don't have a cheap "list
-  fingerprints without fetching" mode in most providers' UIs.
+We drop `IncrementalSourceConnector` (subsource fingerprinting) for the
+v0.1.0 surface; the GitHub API connector ships with no cursor support
+yet, but every provider's API exposes etags / since timestamps that a
+later revision can plug into ``discover()`` without breaking this
+protocol.
 """
 
 from __future__ import annotations
@@ -110,9 +106,9 @@ class Document:
 class Connector(Protocol):
     """Contract every connector implements.
 
-    Construction is the connector's responsibility — the registry passes a
-    `BrowserSession` (so connectors share one Chrome instance) plus
-    provider-specific kwargs.
+    Construction is the connector's responsibility — the registry forwards
+    provider-specific kwargs (token, owner, base_url, ...). Connectors
+    own their own HTTP client; there is no shared session in v0.1.x.
 
     Connectors must be safe to call from a single asyncio task. Concurrent
     use of one connector instance is undefined; create one per worker.
@@ -150,5 +146,5 @@ class Connector(Protocol):
         ...
 
     async def close(self) -> None:
-        """Release per-connector resources (page handles, cookies)."""
+        """Release per-connector resources (HTTP clients, sockets)."""
         ...

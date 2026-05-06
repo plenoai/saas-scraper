@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from saas_scraper import Connector, Document, DocumentRef, Principal, SourceFilter
+from saas_retriever import Connector, Document, DocumentRef, Principal, SourceFilter
 
 
 def test_document_ref_fingerprint_stable() -> None:

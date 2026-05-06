@@ -1,12 +1,12 @@
 [project]
-name = "saas-scraper"
-version = "0.5.0"
-description = "Chrome-driven SaaS content scraper — yields a uniform Document stream for downstream pipelines (pleno-anonymize, pleno-secret-scanner)."
+name = "saas-retriever"
+version = "0.1.0"
+description = "API-first SaaS content retriever — uniform Document stream from GitHub (issues + PRs + code, org-wide). No scraping, no Playwright."
 readme = "README.md"
 license = "AGPL-3.0-or-later"
 requires-python = ">=3.12"
 authors = [{ name = "pleno", email = "ai@egahika.dev" }]
-keywords = ["saas", "scraper", "chrome", "playwright", "slack", "notion", "jira", "confluence", "github", "gitlab", "bitbucket"]
+keywords = ["saas", "github", "rest", "api", "secrets", "dlp", "pii"]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Environment :: Console",
@@ -15,13 +15,10 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
-    "Topic :: Internet :: WWW/HTTP :: Browsers",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 dependencies = [
-    "playwright>=1.48",
     "httpx>=0.27",
-    "pydantic>=2.9",
     "typer>=0.12",
     "rich>=13.9",
 ]
@@ -36,19 +33,19 @@ dev = [
 ]
 
 [project.scripts]
-saas-scraper = "saas_scraper.cli:app"
+saas-retriever = "saas_retriever.cli:app"
 
 [project.urls]
-Homepage = "https://github.com/plenoai/saas-scraper"
-Repository = "https://github.com/plenoai/saas-scraper"
-Issues = "https://github.com/plenoai/saas-scraper/issues"
+Homepage = "https://github.com/plenoai/saas-retriever"
+Repository = "https://github.com/plenoai/saas-retriever"
+Issues = "https://github.com/plenoai/saas-retriever/issues"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/saas_scraper"]
+packages = ["src/saas_retriever"]
 
 [tool.hatch.build.targets.sdist]
 include = ["src", "README.md", "LICENSE", "pyproject.toml"]
@@ -62,9 +59,9 @@ select = ["E", "F", "W", "I", "B", "UP", "N", "RUF"]
 
 [tool.ruff.lint.per-file-ignores]
 # typer's idiomatic CLI signatures rely on `typer.Option(...)` defaults.
-"src/saas_scraper/cli.py" = ["B008"]
+"src/saas_retriever/cli.py" = ["B008"]
 # tests intentionally raise broadly when the precise exception class is
-# implementation-private (typer wraps BadParameter).
+# implementation-private (typer wraps BadParameter at runtime).
 "tests/test_cli.py" = ["B017"]
 
 [tool.mypy]

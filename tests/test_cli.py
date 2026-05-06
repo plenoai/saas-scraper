@@ -1,5 +1,4 @@
-"""CLI smoke + helper tests. No real Chromium launches here — those live in
-the (separately marked) browser-integration suite."""
+"""CLI smoke + helper tests."""
 
 from __future__ import annotations
 
@@ -8,8 +7,8 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from typer.testing import CliRunner
 
-from saas_scraper import __version__
-from saas_scraper.cli import _parse_since, app
+from saas_retriever import __version__
+from saas_retriever.cli import _parse_since, app
 
 runner = CliRunner()
 
@@ -20,24 +19,25 @@ def test_version() -> None:
     assert __version__ in result.stdout
 
 
-def test_list_includes_all_builtins() -> None:
+def test_list_shows_github() -> None:
+    """v0.1.x ships only the GitHub connector. Sibling providers come back
+    in later releases as standalone API-based connectors."""
     result = runner.invoke(app, ["list"])
     assert result.exit_code == 0
-    for name in ("slack", "notion", "jira", "confluence", "github", "gitlab", "bitbucket"):
-        assert name in result.stdout
+    assert "github" in result.stdout
 
 
 def test_fetch_unknown_connector_exits_2() -> None:
     result = runner.invoke(app, ["fetch", "does-not-exist"])
     assert result.exit_code == 2
-    assert "unknown connector" in result.stdout or "unknown connector" in (result.stderr or "")
+    out = result.stdout + (result.stderr or "")
+    assert "unknown connector" in out
 
 
 def test_parse_since_relative_units() -> None:
     now = datetime.now(UTC)
     parsed = _parse_since("7d")
     assert parsed is not None
-    # 7-day window with at most a few seconds drift.
     assert abs((now - parsed) - timedelta(days=7)) < timedelta(seconds=5)
 
 
