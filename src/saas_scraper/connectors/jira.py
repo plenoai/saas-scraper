@@ -32,11 +32,11 @@ class JiraConnector(BaseConnector):
 
     async def discover(self, filter: SourceFilter) -> AsyncIterator[DocumentRef]:
         if False:  # pragma: no cover
-            yield 
+            yield
 
     async def fetch(self, ref: DocumentRef) -> AsyncIterator[Document]:
         if False:  # pragma: no cover
-            yield 
+            yield
 
 
 registry.register("jira", JiraConnector)

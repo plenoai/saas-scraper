@@ -43,7 +43,7 @@ class SlackConnector(BaseConnector):
         observe the empty-stream contract.
         """
         if False:  # pragma: no cover — scaffold
-            yield 
+            yield
 
     async def fetch(self, ref: DocumentRef) -> AsyncIterator[Document]:
         """Scrape the channel page rendered by Slack's web client.
@@ -51,7 +51,7 @@ class SlackConnector(BaseConnector):
         TODO(v0.2.0): implement message extraction.
         """
         if False:  # pragma: no cover — scaffold
-            yield 
+            yield
 
 
 registry.register("slack", SlackConnector)
