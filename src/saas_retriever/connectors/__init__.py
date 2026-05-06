@@ -7,5 +7,6 @@ call so ``saas_retriever.registry.names()`` is non-empty after a single
 
 from saas_retriever.connectors import bitbucket as _bitbucket  # noqa: F401
 from saas_retriever.connectors import github as _github  # noqa: F401
+from saas_retriever.connectors import gitlab as _gitlab  # noqa: F401
 
 __all__: list[str] = []
