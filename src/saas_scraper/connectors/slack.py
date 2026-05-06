@@ -40,6 +40,7 @@ from saas_scraper.connectors._base import (
     apply_name_filter,
     wait_for_signed_in_or_raise,
 )
+from saas_scraper.connectors._scroll import scroll_collect
 from saas_scraper.core import Document, DocumentRef, SourceFilter
 from saas_scraper.registry import registry
 
@@ -124,16 +125,24 @@ class SlackConnector(BaseConnector):
         )
 
     async def _list_sidebar_channels(self, page: Page) -> list[dict[str, str]]:
-        result: list[dict[str, str]] = await page.evaluate(
-            f"""() => Array.from(document.querySelectorAll({_CHANNEL_LINK_SELECTOR!r}))
-                .map(a => ({{
-                    channel_id: (a.getAttribute('data-qa') || '').replace('channel_sidebar_name_', ''),
-                    name: (a.textContent || '').trim(),
-                    href: a.href,
-                }}))
-                .filter(c => c.channel_id && c.name)"""
+        async def _extract(p: Page) -> list[dict[str, str]]:
+            result: list[dict[str, str]] = await p.evaluate(
+                f"""() => Array.from(document.querySelectorAll({_CHANNEL_LINK_SELECTOR!r}))
+                    .map(a => ({{
+                        channel_id: (a.getAttribute('data-qa') || '').replace('channel_sidebar_name_', ''),
+                        name: (a.textContent || '').trim(),
+                        href: a.href,
+                    }}))
+                    .filter(c => c.channel_id && c.name)"""
+            )
+            return result
+
+        return await scroll_collect(
+            page,
+            container_selector=_SIDEBAR_SELECTOR,
+            extract=_extract,
+            key=lambda c: c["channel_id"],
         )
-        return result
 
     async def _read_channel(self, page: Page, url: str) -> str:
         await page.goto(url, wait_until="domcontentloaded", timeout=_LOAD_TIMEOUT_MS)

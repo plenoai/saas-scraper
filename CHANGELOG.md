@@ -7,10 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Planned
 
-- Scroll-walking for virtualised lists (Slack sidebar, message panes,
-  Notion sidebar). Land in v0.4.0.
 - GitHub issue / PR / wiki / gist scrape under the same connector.
+- Notion sidebar scroll-walking (helper exists; not yet wired into
+  ``NotionConnector``).
 - Integration test harness (Playwright + recorded HAR fixtures).
+
+## [0.4.0] - 2026-05-06
+
+### Added
+
+- ``saas_scraper.connectors._scroll.scroll_collect`` — generic
+  virtual-list helper. Scrolls a container, harvests rows after each
+  settle, dedups by caller-supplied key, terminates on a stable cycle
+  / max-iterations / predicate. PEP 695 type parameter syntax.
+- Slack ``discover()`` now uses ``scroll_collect`` to walk the full
+  channel sidebar instead of only the currently-rendered portion.
+
+### Changed
+
+- N/A (backwards compatible; existing callers see more channels).
 
 ## [0.3.0] - 2026-05-06
 
@@ -121,7 +136,8 @@ Initial scaffold.
 - Tag-pushed PyPI trusted publishing via `pypa/gh-action-pypi-publish`.
 - Dependabot for `github-actions` and `pip`.
 
-[Unreleased]: https://github.com/plenoai/saas-scraper/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/plenoai/saas-scraper/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/plenoai/saas-scraper/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/plenoai/saas-scraper/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/plenoai/saas-scraper/compare/v0.1.3...v0.2.0
 [0.1.3]: https://github.com/plenoai/saas-scraper/compare/v0.1.2...v0.1.3

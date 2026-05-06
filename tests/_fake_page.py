@@ -57,6 +57,12 @@ class FakePage:
         return object()
 
     async def evaluate(self, js: str) -> Any:
+        # scroll_collect issues a "scrollTop = scrollHeight" pulse per
+        # iteration. Tests don't model the scroller directly; treat the
+        # call as a no-op so the loop's "no new rows" termination kicks
+        # in on the next extract.
+        if "scrollHeight" in js:
+            return None
         for key, value in self._js_results.items():
             if key in js:
                 return value
