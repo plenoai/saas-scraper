@@ -57,7 +57,7 @@ asyncio.run(main())
 | Connector | Status | Notes |
 |---|---|---|
 | slack | implemented (v0.2) | channel sidebar walk, message pane scrape |
-| github | implemented (v0.3) | file-tree walk + raw fetch, public + SSO repos |
+| github | implemented (v0.5) | code (file tree) + issues + PRs (title/body/comments/diff). Pass `resources={"code","issues","prs"}` |
 | gitlab | implemented (v0.3) | gitlab.com or self-hosted via `base_url` |
 | bitbucket | implemented (v0.3) | bitbucket.org file walk |
 | jira | implemented (v0.3) | Atlassian Cloud issue list + body |
@@ -67,7 +67,28 @@ asyncio.run(main())
 All connectors share a single `BrowserSession` so cookies and SSO state
 inherit across providers. Virtualised lists (Slack sidebar, Notion
 sidebar) only see the currently-visible portion in v0.3 — scroll-walking
-lands in v0.4.
+landed in v0.4. GitHub issue / PR scrape landed in v0.5.
+
+### GitHub multi-resource example
+
+```python
+async with BrowserSession() as session:
+    gh = registry.create(
+        "github",
+        session=session,
+        owner="plenoai",
+        repo="saas-scraper",
+        resources={"code", "issues", "prs"},
+    )
+    async for doc in gh.discover_and_fetch():
+        kind = doc.ref.metadata.get("resource_type")
+        print(kind, doc.ref.path, len(doc.text or ""))
+```
+
+`metadata["resource_type"]` is one of `code`, `issue`, `pr`. Issue and
+PR documents concatenate title + body + every visible comment (PRs also
+include the inline diff hunks) into a single `Document.text` so the
+downstream secret/PII scanners run unchanged.
 
 The v0.1.0 release ships the `Document` protocol, the Chrome session manager,
 and a working scaffold per connector. Additional providers and per-connector

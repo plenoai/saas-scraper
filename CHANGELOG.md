@@ -7,10 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Planned
 
-- GitHub issue / PR / wiki / gist scrape under the same connector.
+- GitHub wiki / gist scrape under the same connector (companion to
+  v0.5.0 issue/PR support).
 - Notion sidebar scroll-walking (helper exists; not yet wired into
   ``NotionConnector``).
 - Integration test harness (Playwright + recorded HAR fixtures).
+
+## [0.5.0] - 2026-05-06
+
+### Added
+
+- ``GitHubConnector`` learns ``resources={"code", "issues", "prs"}``
+  (default ``{"code"}`` for backwards compat). One ``DocumentRef`` per
+  issue / PR with ``metadata["resource_type"]`` and ``metadata["title"]``;
+  ``fetch()`` returns title + body + every visible comment as a single
+  ``Document.text``. PR fetch additionally captures inline diff hunks.
+- Issue / PR enumeration paginates via ``?page=N`` until the response is
+  empty or ``max_issue_pages`` (default 20 ≈ 500 items) is reached.
+- Construction validates the resources set; an unknown resource raises
+  ``ValueError`` with the supported list so a typo never silently
+  scans nothing.
+
+### Changed
+
+- ``GitHubConnector.discover()`` yields ``code`` refs first (when
+  enabled), then issues, then PRs. Existing callers see no change.
+
+### Known limits
+
+- Conversation extraction reads currently-rendered comments only; long
+  threads with "show more" require a follow-up scroll pass.
+- Wiki and gist scrape are still pending.
 
 ## [0.4.0] - 2026-05-06
 
@@ -136,7 +163,8 @@ Initial scaffold.
 - Tag-pushed PyPI trusted publishing via `pypa/gh-action-pypi-publish`.
 - Dependabot for `github-actions` and `pip`.
 
-[Unreleased]: https://github.com/plenoai/saas-scraper/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/plenoai/saas-scraper/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/plenoai/saas-scraper/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/plenoai/saas-scraper/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/plenoai/saas-scraper/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/plenoai/saas-scraper/compare/v0.1.3...v0.2.0
